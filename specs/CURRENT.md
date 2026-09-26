@@ -137,6 +137,10 @@ T05-06_EVIDENCE=docs/evidence/flake-v1/T05-06/REPORT.md
 T05-06_SOAK_WORKFLOW=.github/workflows/t05-06-continuity-soak.yml
 T05-06_CI_RUN=36269118724 (continuity soak PASS 8/8 lanes x 10 days on windows/macos/ubuntu -- active-day/resumption minimums met, full loop + backup/restore + export/import per lane, independent chain + accounting clean)
 T05-06_EXECUTION_CONTRACT=AUTOMATED_LONG_HORIZON_CONTINUITY_SOAK
+T05-07_STATUS=IN_PROGRESS
+T05-07_EVIDENCE=docs/evidence/flake-v1/T05-07/REPORT.md
+T05-07_AUDIT_WORKFLOW=.github/workflows/t05-07-release-audit.yml
+T05-07_CI_RUN=PENDING (audit implemented, awaiting exact green run and independent check)
 T05-04_WINDOWS_DIRECT_DISTRIBUTION_INSPECTION=scripts/release/inspect_windows_signature.sh (expected AUTHENTICODE=NOT_SIGNED, explicitly documented, never a trust claim)
 T05-04_WINDOWS_DOWNLOAD_SURFACE=docs/release/DOWNLOAD.md
 T05-04_LINUX_SIGNING_STATUS=PASS

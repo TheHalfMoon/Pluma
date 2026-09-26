@@ -133,6 +133,10 @@ T05-05_EVIDENCE=docs/evidence/flake-v1/T05-05/REPORT.md
 T05-05_REPRODUCTION_WORKFLOW=.github/workflows/t05-05-independent-reproduction.yml
 T05-05_CI_RUN=36254592422 (independent reproduction PASS on windows/macos/ubuntu -- byte-identical ELF/Mach-O, isolated PE linker fields with bit-identical remainder, reconstruction PASS, migration repeat passed, install qualification per profile)
 T05-06_STATUS=IN_PROGRESS
+T05-06_EVIDENCE=docs/evidence/flake-v1/T05-06/REPORT.md
+T05-06_SOAK_WORKFLOW=.github/workflows/t05-06-continuity-soak.yml
+T05-06_CI_RUN=PENDING (harness + workflow implemented, awaiting exact green run on all three profiles)
+T05-06_EXECUTION_CONTRACT=AUTOMATED_LONG_HORIZON_CONTINUITY_SOAK
 T05-04_WINDOWS_DIRECT_DISTRIBUTION_INSPECTION=scripts/release/inspect_windows_signature.sh (expected AUTHENTICODE=NOT_SIGNED, explicitly documented, never a trust claim)
 T05-04_WINDOWS_DOWNLOAD_SURFACE=docs/release/DOWNLOAD.md
 T05-04_LINUX_SIGNING_STATUS=PASS

@@ -230,7 +230,7 @@ def run_lane(binary: Path, lane: int, lane_dir: Path, seed: int):
             # Backup/restore exit proof on the sealed second-to-last active day.
             if day == backup_day:
                 backup_out = must(binary, vault, ["backup-run", "--out", str(lane_dir / "backup")], log)
-                if "verified=True" not in backup_out:
+                if "verified=true" not in backup_out.lower():
                     raise RuntimeError(f"backup not independently verified: {backup_out[-300:]}")
                 log["backup_verified"] = True
                 restore_out = must(binary, vault, ["backup-restore", "--backup", str(lane_dir / "backup"),

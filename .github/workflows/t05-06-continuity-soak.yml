@@ -1,0 +1,66 @@
+name: t05-06-continuity-soak
+
+# T05-06 (Founder replacement contract: automated long-horizon continuity
+# soak -- docs/canonical/FOUNDER_NO_HUMAN_QUALIFICATION_GATES_2026-09-16.md).
+# Eight independent workstream lanes of ten simulated workdays each run
+# through the real release binary on a fresh runner per profile, then verify
+# independently from vault/export bytes. No human participants, no adoption
+# claim -- this is deterministic engineering evidence only.
+#
+# workflow_dispatch-only, same reservation as the other evidence workflows:
+# a deliberate, evidence-producing action, never an automatic side effect
+# of routine PR CI.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  continuity-soak:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record pinned source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "source_commit=$(git rev-parse HEAD)" | tee source-identity.txt
+          echo "source_tree=$(git rev-parse HEAD^{tree})" | tee -a source-identity.txt
+          cat source-identity.txt
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build pluma release binary (the real product under soak)
+        shell: bash
+        run: cargo build --release --locked --bin pluma
+
+      - name: Automated long-horizon continuity soak (8 lanes x 10 days)
+        shell: bash
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          exe=""
+          case "$(uname -s)" in
+            MINGW*|MSYS*|CYGWIN*) exe=".exe" ;;
+          esac
+          mkdir -p dist/t05-06
+          python3 docs/evidence/flake-v1/T05-06/checks/continuity_soak.py \
+            --pluma-bin "target/release/pluma${exe}" \
+            --workdir "dist/t05-06/soak-work" \
+            --out "dist/t05-06/continuity-soak.json"
+
+      - name: Upload non-secret evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-06-continuity-soak-evidence-${{ matrix.os }}
+          path: |
+            source-identity.txt
+            dist/t05-06/continuity-soak.json
+          if-no-files-found: error

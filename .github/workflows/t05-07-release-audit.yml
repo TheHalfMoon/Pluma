@@ -1,0 +1,101 @@
+name: t05-07-release-audit
+
+# T05-07 (plan section 25: "Determine release readiness from complete
+# evidence rather than completion checkboxes"). Reruns the checks that must
+# be current at the exact release revision (supply-chain scans, forbidden-
+# capability scan, license/notice/runtime facts, SBOM presence, product-code
+# drift gate, evidence traceability) and re-verifies every CI run ID named
+# by specs/CURRENT.md via the gh API. Single runner: the audit is
+# platform-independent and every per-profile claim it cites is already
+# recorded by its owning task's native run. Do not upload or publish.
+#
+# workflow_dispatch-only, same reservation as the other evidence workflows.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record audited source identity
+        run: |
+          set -euo pipefail
+          echo "source_commit=$(git rev-parse HEAD)" | tee source-identity.txt
+          echo "source_tree=$(git rev-parse HEAD^{tree})" | tee -a source-identity.txt
+          cat source-identity.txt
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fresh root advisory scan
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit | tee root-cargo-audit.txt
+
+      - name: Fresh desktop advisory scan
+        working-directory: desktop/src-tauri
+        run: |
+          cargo audit | tee ../../desktop-cargo-audit.txt
+
+      - name: Frontend build (needed by the bundle network-surface check)
+        working-directory: desktop
+        run: |
+          npm ci
+          npm run build
+          npm audit | tee ../npm-audit.txt
+
+      - name: Build pluma release binary (needed by the license-runtime check)
+        run: cargo build --release --locked --bin pluma
+
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --locked
+
+      - name: Generate SBOMs for this exact revision
+        run: scripts/release/generate_sbom.sh
+
+      - name: Release audit checks
+        run: |
+          set -euo pipefail
+          mkdir -p dist/t05-07
+          python3 docs/evidence/flake-v1/T05-07/checks/release_audit.py \
+            --pluma-bin target/release/pluma \
+            --out dist/t05-07/release-audit.json
+
+      - name: Re-verify every CI run ID named by specs/CURRENT.md (gh API, conclusions only)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          grep -oE '_CI_RUN=[0-9]{5,}' specs/CURRENT.md | cut -d= -f2 | sort -u > dist/t05-07/run-ids.txt
+          cat dist/t05-07/run-ids.txt
+          while read -r run_id; do
+            conclusion="$(gh run view "$run_id" --repo TheHalfMoon/Pluma --json conclusion --jq .conclusion)"
+            echo "$run_id: $conclusion" | tee -a dist/t05-07/run-conclusions.txt
+            [[ "$conclusion" == "success" ]] || { echo "run $run_id did not conclude success" >&2; exit 1; }
+          done < dist/t05-07/run-ids.txt
+          echo "ALL_RECORDED_RUNS_SUCCESS=YES"
+
+      - name: Upload non-secret evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: t05-07-release-audit-evidence
+          path: |
+            source-identity.txt
+            root-cargo-audit.txt
+            desktop-cargo-audit.txt
+            npm-audit.txt
+            dist/t05-07/release-audit.json
+            dist/t05-07/run-ids.txt
+            dist/t05-07/run-conclusions.txt
+          if-no-files-found: error

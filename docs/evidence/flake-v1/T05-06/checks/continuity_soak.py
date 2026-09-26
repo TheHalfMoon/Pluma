@@ -53,7 +53,14 @@ SEED_DEFAULT = 20260926
 
 def run(binary, vault, args):
     """One fresh CLI process (a genuine restart boundary)."""
-    cmd = [str(binary), *args, "--vault", str(vault)]
+    return run_raw(binary, [*args, "--vault", str(vault)])
+
+
+def run_raw(binary, args):
+    """One fresh CLI process without appending --vault: for commands whose
+    destination is itself a --vault/--backup/--out flag (passing both
+    would send two --vault values and the wrong one can win)."""
+    cmd = [str(binary), *[str(a) for a in args]]
     started = time.perf_counter()
     result = subprocess.run(cmd, capture_output=True, text=True)
     elapsed = time.perf_counter() - started
@@ -62,6 +69,15 @@ def run(binary, vault, args):
 
 def must(binary, vault, args, lane_log):
     result, elapsed = run(binary, vault, args)
+    return record(binary, args, result, elapsed, lane_log)
+
+
+def must_raw(binary, args, lane_log):
+    result, elapsed = run_raw(binary, args)
+    return record(binary, args, result, elapsed, lane_log)
+
+
+def record(binary, args, result, elapsed, lane_log):
     lane_log["invocations"] += 1
     lane_log["wait_seconds"] = round(lane_log.get("wait_seconds", 0.0) + elapsed, 3)
     if result.returncode != 0:
@@ -233,7 +249,7 @@ def run_lane(binary: Path, lane: int, lane_dir: Path, seed: int):
                 if "verified=true" not in backup_out.lower():
                     raise RuntimeError(f"backup not independently verified: {backup_out[-300:]}")
                 log["backup_verified"] = True
-                restore_out = must(binary, vault, ["backup-restore", "--backup", str(lane_dir / "backup"),
+                restore_out = must_raw(binary, ["backup-restore", "--backup", str(lane_dir / "backup"),
                                                    "--out", str(lane_dir / "restored")], log)
                 log["restore_report"] = restore_out.splitlines()[0] if restore_out else ""
                 must(binary, lane_dir / "restored", ["project-show", "--id", project], log)
@@ -266,7 +282,7 @@ def run_lane(binary: Path, lane: int, lane_dir: Path, seed: int):
             raise RuntimeError("export package directory missing")
         log["export_bytes"] = dir_bytes(export_out_dir)
         restore2 = lane_dir / "import-restored"
-        import_out = must(binary, vault, ["import-full-restore", "--source", str(export_out_dir),
+        import_out = must_raw(binary, ["import-full-restore", "--source", str(export_out_dir),
                                           "--vault", str(restore2)], log)
         log["import_report"] = import_out.splitlines()[0] if import_out else ""
         must(binary, restore2, ["project-show", "--id", project], log)

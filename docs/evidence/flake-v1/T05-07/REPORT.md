@@ -52,3 +52,61 @@ T05-07_CI_RUN=PENDING (audit implemented in this change; no PASS claimed before 
 
 `T05-08` remains not dependency-ready until every gate above reads PASS with exact linked
 evidence and no unresolved blocking unknown.
+
+## Addendum: release audit qualification PASS (2026-09-26, CI run 36274506387)
+
+`.github/workflows/t05-07-release-audit.yml` ran on `main` at
+`7895fb69db6bedc2c35e7153a966c9b9f2aff112`: CI run
+[`36274506387`](https://github.com/TheHalfMoon/Pluma/actions/runs/36274506387), conclusion
+`success`. Independently confirmed from the downloaded evidence artifact (not merely the
+green checkmark) — `dist/t05-07/release-audit.json` reads `"passed": true` with all eight
+check groups true:
+
+- **required_docs:** all 16 release/format/license documents present and non-empty.
+- **bundle_network_surface:** 1 built JS file, 0 violations (same inert baseline T04-01
+  through T04-06 qualified — Vite's same-origin polyfill only).
+- **root_closure:** 52 locked packages, 0 network/model/account/sync deny hits.
+- **notices:** `Cargo.toml` declares Apache-2.0; THIRD-PARTY-LICENSES.md complete
+  (Unicode + MPL families attributed).
+- **license_runtime:** release `pluma license` exits 0 and names Apache-2.0, the
+  `github.com/TheHalfMoon/Pluma` source, the issues support route, and offline operation.
+- **sboms:** 6 current CycloneDX SBOMs generated for this exact revision.
+- **product_code_drift:** zero commits touching `src/`, desktop sources, `tauri.conf.json`,
+  or any lockfile since `d9fed64` (the last product-code change, PR #118 rename) — no
+  affected-check rerun required beyond the fresh scans in this run.
+- **traceability:** all 36 task REPORTs exist; all 13 CI run IDs named by CURRENT
+  re-verified `success` via the gh API in the same run (`run-conclusions.txt`).
+- **Fresh scans:** root `cargo audit` exit 0 with empty findings stdout (0 findings —
+  cargo-audit emits findings on stdout and fetch progress on stderr); desktop `cargo
+  audit` exit 0 with the same 7 non-blocking unmaintained/unsound warnings T05-04 already
+  recorded (RUSTSEC-2024-0370/0081/0075/0080/0098/0100/0429 — 0 vulnerabilities, no new
+  advisory since); `npm audit` reports `found 0 vulnerabilities`.
+
+## Final R01–R12 verdicts
+
+| Gate | Verdict | Exact linked evidence |
+|---|---|---|
+| R01 | PASS | T01-01..T01-04 REPORTs; T05-02 (38 cycles, zero loss); T05-05 repro; T05-06 soak chains (run 36269118724) |
+| R02 | PASS | T03-01..T03-03 REPORTs |
+| R03 | PASS | T02-05..T02-07; T05-01 M/L timings; T05-02 recovery; T05-05 migration repeat + reconstruction (run 36254592422); T05-06 backup/restore |
+| R04 | PASS | T03-04..T03-06; T05-04 advisory refresh; fresh T05-07 scans (run 36274506387, 0 vulns) |
+| R05 | PASS | T04-01 network-denied; T05-03/05 no-network-on-launch; T04-06 bundle surface; T05-07 root-closure + bundle re-check |
+| R06 | PASS | section27-performance + m-scale-performance CI green on every merged PR including this cycle; T05-01 M/L; T05-02 matrix |
+| R07 | PASS | T05-01; tests/fixtures (format-compat, migration); refusal tests in suite |
+| R08 | PASS | T05-03/04/05 install_test on all native profiles; Windows/macOS direct-distribution install quals (runs 36243789672, 35514419522); DOWNLOAD/USER_GUIDE instructions; uninstall retains vaults |
+| R09 | PASS | T05-04 (LICENSE/NOTICE/361 components/6 SBOMs/GPG `F77980…87FE22`/attestations); Linux + macOS + Windows direct-web quals; T05-05 repro + PE isolation |
+| R10 | PASS | USER_GUIDE, RELEASE_VERIFICATION, DOWNLOAD, CODE_SIGNING_POLICY, formats ×6, `pluma license` runtime facts (re-proven run 36274506387), issues support route |
+| R11 | PASS | Amended contract (no human claim): T03-08 automated continuity; T05-06 soak 8×10 (run 36269118724) |
+| R12 | PASS | T05-05 independent reproduction (run 36254592422); full required CI green on every merged PR; zero open release-blocking regressions |
+
+No unresolved blocking unknown remains. The local candidate set (CLI archives, desktop
+installer bundles per profile, SBOMs, manifests, signatures, attestations) is present and
+verified as recorded by the owning runs above.
+
+```text
+T05-07_STATUS=COMPLETE
+T05-07_CI_RUN=36274506387
+```
+
+`T05-08` is now dependency-ready. Actual public publication remains separately authorized
+and is not required for completion.
